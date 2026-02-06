@@ -12,7 +12,7 @@ It moves all heavy rendering logic (drawing images, effects, particles) to a bac
      Multi-Threaded Architecture: Spawns configurable worker threads.    
      Double Buffering: Renders to an off-screen surface to prevent flickering/tearing.    
      Strip Rendering: Divides the screen into horizontal strips to parallelize workload.    
-     Non-Blocking UI: The main thread remains responsive (100ms touch response) even under heavy load.      
+     Non-Blocking UI: The main thread remains responsive even under heavy load.      
      
     
 🧠 How It Works     
