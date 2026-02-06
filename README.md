@@ -6,6 +6,8 @@ A High-Performance, Multi-Threaded Rendering Skeleton for FMX &amp; Skia4Delphi 
          
 This is a minimal, abstracted rendering engine designed to solve the Main-Thread Bottleneck in FireMonkey (FMX) applications.     
 It moves all heavy rendering logic (drawing images, effects, particles) to a background thread pool, while the main UI thread simply displays the finished image.    
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/LaMitaOne/SkiaCustomMultiThreadedBase)
     
 ⚡ Key Features     
     
