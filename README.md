@@ -24,6 +24,6 @@ It moves all heavy rendering logic (drawing images, effects, particles) to a bac
     
 This unit is experimental. Just an idea i got while implementing doublebuffering and thought of how miniled split screen in regions... 
 
-***Threaded rendering at all works and looks ok now, no flicker at all (except when we do more than 4 threads, then some artefacts but still running even at 64), cause we wait a short moment (except strip 1 only 300ns) after create each workerthread but we get memleak and fill up and die after a while...somebody see it maybe or has an idea?***
+***Threaded rendering at all works and looks ok now, no flicker at all (except when we do more than 4 threads, then some artefacts but still running even at 64), cause we wait a short moment (less than sleep(1)) after create each workerthread but we get memleak and fill up and die after a while...somebody see it maybe or has an idea?***
 
 i get now a bit to my limits here, someone with more than 1 month experience in skia4delphi probably better should look at it
