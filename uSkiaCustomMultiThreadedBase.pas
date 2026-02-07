@@ -8,11 +8,6 @@
   - Non-Blocking UI: Main thread remains responsive even at high load.
   - Double Buffering: Renders to offscreen surfaces to prevent flickering.
   - Strip Rendering: Divides the screen into adjustable horizontal strips.
-  How it Works:
-  1. Background Thread: Runs logic and draws all strips sequentially to a
-     shared off-screen surface.
-  2. Main Thread: Takes the completed snapshot and draws it to the screen.
-  3. This prevents UI freezing and ensures smooth animation.
 *******************************************************************************}
 { SkiaCustomMultiThreadedBase v0.2                                             }
 { by The Developer                                                             }
@@ -645,4 +640,5 @@ begin
 end;
 
 end.
+
 
