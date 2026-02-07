@@ -1,5 +1,5 @@
 # SkiaCustomMultiThreadedBase
-A High-Performance, Multi-Threaded Rendering Skeleton for FMX &amp; Skia4Delphi Experimental v0.1 alpha
+A High-Performance, Multi-Threaded Rendering Skeleton for FMX &amp; Skia4Delphi Experimental v0.2 alpha
     
 
 <img width="646" height="510" alt="Unbenannt" src="https://github.com/user-attachments/assets/decde0cd-65fa-49e3-bfbc-16233598a54b" />
