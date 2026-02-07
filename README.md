@@ -2,7 +2,7 @@
 A High-Performance, Multi-Threaded Rendering Skeleton for FMX &amp; Skia4Delphi Experimental v0.1 alpha
     
 
-<img width="644" height="511" alt="Unbenannt" src="https://github.com/user-attachments/assets/c48b3c23-4413-4d02-9b1e-1c3b242f2d79" />
+<img width="633" height="498" alt="Unbenannt" src="https://github.com/user-attachments/assets/a9b3dc14-7c27-4330-9b87-a1e5aa8d7508" />
 
 
          
