@@ -2,7 +2,8 @@
 A High-Performance, Multi-Threaded Rendering Skeleton for FMX &amp; Skia4Delphi Experimental v0.1 alpha
     
 
-<img width="633" height="498" alt="Unbenannt" src="https://github.com/user-attachments/assets/a9b3dc14-7c27-4330-9b87-a1e5aa8d7508" />
+<img width="646" height="510" alt="Unbenannt" src="https://github.com/user-attachments/assets/decde0cd-65fa-49e3-bfbc-16233598a54b" />
+
 
 
          
@@ -30,3 +31,5 @@ It moves all heavy rendering logic (drawing images, effects, particles) to a bac
 ⚠️ Experimental Status    
     
 This unit is experimental. Just an idea i got while implementing doublebuffering and thought of how miniled split screen in regions... 
+
+Threaded rendering at all works and looks ok now, no flicker at all, cause we wait a short moment (except strip 1 only 300ns) after create each workerthread but we get memleak and fill up and die...somebody see it maybe or has an idea? 
