@@ -31,5 +31,3 @@ It moves all heavy rendering logic (drawing images, effects, particles) to a bac
     
 This unit is experimental. Just an idea i got while implementing doublebuffering and thought of how miniled split screen in regions...       
 i have no idea how it reacts on other hardware, but on my rtx2060s runs anyway fine and Asus zenbook ux305ca m3 dualcore it runs too smooth and stable at all max settings from sample
-    
-You never thought of instead trying that a few threads play around at canvas at once... just let them play around at our doublebuffered? and then paint it? REALLY?
