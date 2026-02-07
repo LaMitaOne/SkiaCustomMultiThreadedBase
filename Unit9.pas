@@ -20,7 +20,7 @@ type
     tbFPS: TTrackBar;
     lblFPS: TLabel;
     FPSTimer: TTimer;
-    cbWorkerCount: TComboBox; // <--- Added ComboBox
+    cbWorkerCount: TComboBox; 
     procedure OnStartClick(Sender: TObject);
     procedure OnStopClick(Sender: TObject);
     procedure OnFPSTracking(Sender: TObject);
@@ -44,7 +44,7 @@ begin
   FSkiaView := TSkiaCustomMultiThreadedBase.Create(Self);
   FSkiaView.Parent := Self;
   FSkiaView.Align := TAlignLayout.Client;
-  FSkiaView.Margins.Rect := TRectF.Create(10, 110, 10, 10); // Increased Top Margin for new controls
+  FSkiaView.Margins.Rect := TRectF.Create(10, 110, 10, 10); 
   FSkiaView.HitTest := False;
   FSkiaView.Active := False;
   FSkiaView.TargetFPS := 60;
@@ -98,7 +98,7 @@ begin
   cbWorkerCount.Width := 155;
   cbWorkerCount.Position.X := 80;
   cbWorkerCount.Position.Y := 60;
-  cbWorkerCount.ItemHeight := 25; // Make items easier to tap/click
+  cbWorkerCount.ItemHeight := 25; 
   // Fill ComboBox with 1 to 16
   cbWorkerCount.Items.Add('each line a thread');
   for i := 1 to 64 do
@@ -162,5 +162,6 @@ begin
 end;
 
 end.
+
 
 
