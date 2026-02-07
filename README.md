@@ -19,14 +19,6 @@ It moves all heavy rendering logic (drawing images, effects, particles) to a bac
      Strip Rendering: Divides the screen into horizontal strips to parallelize workload.    
      Non-Blocking UI: The main thread remains responsive even under heavy load.      
      
-    
-🧠 How It Works     
-    
-    Background Thread: Runs logic and draws strips sequentially to a shared off-screen surface.     
-    Synchronization: Uses TCriticalSection and TEvent for thread-safe buffer swapping.     
-    Main Thread: Takes the completed snapshot and draws it to the screen (TSkCustomControl.Draw).     
-     
-    
  
 ⚠️ Experimental Status    
     
