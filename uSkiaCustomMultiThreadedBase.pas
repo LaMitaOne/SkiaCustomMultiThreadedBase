@@ -10,7 +10,7 @@
   - Strip Rendering: Divides the screen into adjustable horizontal strips.
 *******************************************************************************}
 { SkiaCustomMultiThreadedBase v0.2                                             }
-{ by The Developer                                                             }
+{ by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
 {------------------------------------------------------------------------------}
 {
@@ -640,5 +640,6 @@ begin
 end;
 
 end.
+
 
 
