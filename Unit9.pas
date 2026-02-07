@@ -1,6 +1,7 @@
 unit Unit9;
 
 interface
+
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Layouts,
@@ -28,10 +29,13 @@ type
   public
     { Public-Deklarationen }
   end;
+
 var
   Form9: TForm9;
+
 implementation
 {$R *.fmx}
+
 procedure TForm9.FormCreate(Sender: TObject);
 var
   i: Integer;
@@ -75,7 +79,7 @@ begin
   tbFPS := TTrackBar.Create(Self);
   tbFPS.Parent := Self;
   tbFPS.Min := 1;
-  tbFPS.Max := 360;
+  tbFPS.Max := 240;
   tbFPS.Value := 60;
   tbFPS.Width := 200;
   tbFPS.Position.X := 300;
@@ -91,14 +95,15 @@ begin
   // 7. Create Worker Count ComboBox
   cbWorkerCount := TComboBox.Create(Self);
   cbWorkerCount.Parent := Self;
-  cbWorkerCount.Width := 80;
+  cbWorkerCount.Width := 155;
   cbWorkerCount.Position.X := 80;
   cbWorkerCount.Position.Y := 60;
   cbWorkerCount.ItemHeight := 25; // Make items easier to tap/click
   // Fill ComboBox with 1 to 16
-  for i := 1 to 128 do
+  cbWorkerCount.Items.Add('each line a thread');
+  for i := 1 to 64 do
     cbWorkerCount.Items.Add(IntToStr(i));
-  cbWorkerCount.ItemIndex := 3; // Default to 4 (Index 3)
+  cbWorkerCount.ItemIndex := 4; // Default to 4
   cbWorkerCount.OnChange := OnWorkerCountChange;
   // 8. Create FPS Update Timer
   FPSTimer := TTimer.Create(Self);
@@ -106,20 +111,24 @@ begin
   FPSTimer.OnTimer := OnFPSTimer;
   FPSTimer.Enabled := True;
 end;
+
 procedure TForm9.FormDestroy(Sender: TObject);
 begin
   // Components are owned by the form, auto-freed
 end;
+
 procedure TForm9.OnStartClick(Sender: TObject);
 begin
   if Assigned(FSkiaView) then
     FSkiaView.Active := True;
 end;
+
 procedure TForm9.OnStopClick(Sender: TObject);
 begin
   if Assigned(FSkiaView) then
     FSkiaView.Active := False;
 end;
+
 procedure TForm9.OnFPSTracking(Sender: TObject);
 begin
   if Assigned(FSkiaView) and Assigned(tbFPS) then
@@ -127,6 +136,7 @@ begin
     FSkiaView.TargetFPS := Round(tbFPS.Value);
   end;
 end;
+
 procedure TForm9.OnFPSTimer(Sender: TObject);
 begin
   if Assigned(FSkiaView) and Assigned(lblFPS) then
@@ -134,15 +144,22 @@ begin
     lblFPS.Text := Format('Target: %d | Real: %d FPS', [FSkiaView.TargetFPS, FSkiaView.RealFPS]);
   end;
 end;
+
 procedure TForm9.OnWorkerCountChange(Sender: TObject);
+var
+  NewCount: Integer;
 begin
   if Assigned(FSkiaView) and Assigned(cbWorkerCount) then
   begin
-    if cbWorkerCount.ItemIndex <> -1 then
+    if cbWorkerCount.ItemIndex = 0 then
+      NewCount := Height
+    else if cbWorkerCount.ItemIndex <> -1 then
     begin
-      var NewCount := StrToIntDef(cbWorkerCount.Items[cbWorkerCount.ItemIndex], 4);
-      FSkiaView.WorkerCount := NewCount;
+      NewCount := StrToIntDef(cbWorkerCount.Items[cbWorkerCount.ItemIndex], 4);
     end;
+    FSkiaView.WorkerCount := NewCount;
   end;
 end;
+
 end.
+
