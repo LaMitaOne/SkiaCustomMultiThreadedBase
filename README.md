@@ -24,7 +24,7 @@ It moves all heavy rendering logic (drawing images, effects, particles) to a bac
     
 This unit is experimental. Just an idea i got while implementing doublebuffering and thought of how miniled split screen in regions... 
 
-***Multithreaded rendering at all works and looks ok now, no flicker at all (except when we do more than 4 threads, then some artifacts but still running even at 64), cause we wait a short moment (less than sleep(1)) after create each workerthread but we get memleak and fill up and die after a while...somebody see it maybe or has an idea?***     
+***Multithreaded rendering at all works and looks ok now, no flicker at all (except when we do more than 4 threads, then some artifacts but still running even at 64), cause we wait a short moment (less than sleep(1)) after create each workerthread but we get memleak and fill up and die after a while...somebody see it maybe or has an idea?***     think better not create each cycle... Yea think I get some idea 🤦🏻‍♀️
     
 On dual core no artifacts even at 64 threads, but getting a bit slow, still nice to test. Runs stable till mem full at 64 threads. Artifacts so think timing at faster pc   
     
