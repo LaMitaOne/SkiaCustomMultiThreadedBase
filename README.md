@@ -29,7 +29,7 @@ This unit is experimental. Just an idea i got while implementing doublebuffering
 On Asus zenbook ux305ca dual core no artifacts(rarely saw some later) even at 64 threads, but getting a bit slow 17fps, still nice to test. Runs stable few minutes till mem full at 64 threads. Ok same time hd video & Firefox open is lil bit much too :D But Artifacts think maybe a timing problem at faster pc, at our gate       
     
 Probably I don't see the Forrest cause of all the trees or something...   
-But at all not bad try so far... we throw around **9.216 Threads/sec** at **144 fps** with **64 threads** – relatively stable so far :D  
+But at all not bad try so far... we throw around **9.216 Threads/sec** at **144 fps** with **64 threads** – relatively stable so far :D Delphi ROCKS  
 (The only thing stopping us is the memleak... not the madness itself.)  
     
 i get now a bit to my limits here, someone with more than 1 month experience in skia4delphi maybe better should look at it
