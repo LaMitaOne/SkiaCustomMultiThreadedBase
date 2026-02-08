@@ -26,7 +26,7 @@ This unit is experimental. Just an idea i got while implementing doublebuffering
 
 ***Multithreaded rendering at all works and looks ok now, no flicker at all (except when we do more than 4 threads, then some artifacts but still running even at 64), cause we wait a short moment (less than sleep(1)) after create each workerthread but we get memleak and fill up and die after a while...somebody see it maybe or has an idea?***     think better not create each cycle... Yea think I get some idea 🤦🏻‍♀️
     
-On Asus zenbook ux305ca dual core no artifacts even at 64 threads, but getting a bit slow 13fps, still nice to test. Runs stable till mem full at 64 threads. Artifacts so think timing at faster pc   
+On Asus zenbook ux305ca dual core no artifacts even at 64 threads, but getting a bit slow 13fps, still nice to test. Runs stable few minutes till mem full at 64 threads. Artifacts so think timing at faster pc   
     
 Probably I don't see the Forrest cause of all the trees or something...   
     
