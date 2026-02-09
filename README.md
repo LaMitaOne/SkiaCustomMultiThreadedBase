@@ -25,6 +25,8 @@ This unit is experimental. Just an idea i got while implementing doublebuffering
 ***Multithreaded rendering at all works and looks ok now, no flicker at all, real and target fps get same at 120Hz, 144Hz not anymore here, 256 threads only get 20fps here at ryzen 7 5800x***     
    
 we running stable now so far, no big memleak anymore, but a little...anyway...now i go sleep a few days better :P   
+   
+oh and yes ...i tried it really...256 threads on dualcore lol he does 13fps still oO   
      
   Latest Changes:    
    v 0.3:    
