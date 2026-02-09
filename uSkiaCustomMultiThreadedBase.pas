@@ -3,28 +3,44 @@
 ********************************************************************************
   A high-performance, multi-threaded FMX Skia component.
   Utilizing Skia4Delphi for off-screen rendering.
+
   Key Features:
   - Multi-Threaded Architecture: Separates Logic/Rendering from the UI Thread.
   - Non-Blocking UI: Main thread remains responsive even at high load.
   - Double Buffering: Renders to offscreen surfaces to prevent flickering.
   - Strip Rendering: Divides the screen into adjustable horizontal strips.
+  - Thread Staggering: Uses high-precision timing to start workers without CPU spikes.
+  - Persistent Buffers: Allocates resources once to minimize memory overhead.
+
+  How it Works:
+  1. Background Threads: Logic runs on the main loop, but rendering is split
+     across multiple worker threads, each drawing a specific strip.
+  2. Thread Stagger: Workers are started with nanosecond delays (150ns) to
+     distribute CPU load evenly.
+  3. Main Thread: Takes the completed snapshots and composites them to the
+     screen.
+  4. This prevents UI freezing and ensures smooth animation at hardware limits.
+
+
 *******************************************************************************}
-{ SkiaCustomMultiThreadedBase v0.2                                             }
+{ SkiaCustomMultiThreadedBase v0.3                                           }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
 {------------------------------------------------------------------------------}
 {
   Latest Changes:
+   v 0.3:
+   - Replaced Sleep/SwitchToThread with HighResTimer SpinWait.
+   - Optimized stagger timing to 150ns for maximum throughput.
+   - Implemented Persistent Buffering (created once) to reduce GC pressure.
+   - Multi-threaded strip rendering with precise thread startup timing.
    v 0.2:
-   - Now we run each render strip in single workerthread
+   - Initial multi-threaded strip architecture.
    v 0.1:
    - Implemented Doublebuffering logic.
    - Implemented Background Thread Logic.
    - Implemented Sequential Strip Rendering.
-   - Added Dirty Rect optimization in sample (Only redraws if logic changed).
 }
-
-
 unit uSkiaCustomMultiThreadedBase;
 
 interface
@@ -38,9 +54,18 @@ uses
   {$ENDIF};
 
 type
+  { High Precision Timer used to synchronize thread start times with
+    nanosecond precision, avoiding the inaccuracy of standard OS sleep calls. }
+  THighResTimer = record
+    Frequency: Int64;
+    procedure Init;
+    function GetTicks: Int64; inline;
+    procedure SpinWaitNanoseconds(const ANanoSeconds: Int64); inline;
+  end;
+
   TSkiaCustomMultiThreadedBase = class(TSkCustomControl)
   private
-    { Threading & Sync }
+    { Threading & Synchronization }
     FRenderThreads: TList;
     FLock: TCriticalSection;
     FEvent: TEvent;
@@ -48,47 +73,48 @@ type
     FTerminate: Boolean;
     FStopwatch: TStopwatch;
     FFrameTime: Double;
+    FTimer: THighResTimer;
 
-    { CPU Affinity }
+    { CPU Affinity Settings }
     FThreadAffinity: Integer;
 
-    { Rendering }
-    FBackBuffer: ISkImage;
-    FStripImages: array of ISkImage;    // Stores finished snapshots
-    FBackSurfaces: array of ISkSurface; // Temp surfaces for workers
-
+    { Rendering Resources }
+    FBackBuffer: ISkImage;             // Final image drawn to the UI
+    FStripImages: array of ISkImage;    // Snapshots of individual strips
+    FBackSurfaces: array of ISkSurface; // Persistent drawing surfaces for workers
     FFrameCount: Integer;
     FLastFpsTime: Double;
     FRealFPS: Integer;
 
-    { Logic }
+    { Logic State }
     FNeedsRedraw: Boolean;
     FActive: Boolean;
     FWorkerCount: Integer;
     FStripsCompleted: Integer;
+    FBufferValid: Boolean; // Tracks if buffer allocation matches current size
 
-    { Demo State }
+    { Demo State (Bouncing Box) }
     FDemoRect: TRectF;
     FDemoVelocity: TPointF;
     FAngle: Single;
     FPrevRect: TRectF;
     FPrevActive: Boolean;
 
-    { Setters }
+    { Property Setters }
     procedure SetActive(const Value: Boolean);
     procedure SetTargetFPS(const Value: Integer);
     procedure SetWorkerCount(const Value: Integer);
     procedure SetThreadAffinity(const Value: Integer);
 
-    { Internal }
+    { Internal Methods }
     procedure ThreadSafeInvalidate;
     procedure StartRenderThreads;
     procedure StopRenderLoop;
     procedure RenderFrame;
+    procedure AllocateBuffers;
   protected
     procedure Resize; override;
     procedure Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single); override;
-
     procedure UpdateLogic(const DeltaTime: Double); virtual;
     procedure RenderStrip(const ACanvas: ISkCanvas; const ADest: TRectF; const ATime: Double; const AStripIndex: Integer; const AObjectRect: TRectF; const AAngle: Single; const AIsActive: Boolean); virtual;
   public
@@ -111,12 +137,44 @@ type
 implementation
 
 {==============================================================================
-  Internal Record
+  THighResTimer Implementation
+==============================================================================}
+
+procedure THighResTimer.Init;
+begin
+  // Initialize the high performance counter frequency
+  if not QueryPerformanceFrequency(Frequency) then
+    Frequency := 0;
+end;
+
+function THighResTimer.GetTicks: Int64;
+begin
+  QueryPerformanceCounter(Result);
+end;
+
+procedure THighResTimer.SpinWaitNanoseconds(const ANanoSeconds: Int64);
+var
+  StartTicks, TargetTicks, CurrentTicks: Int64;
+begin
+  if (ANanoSeconds <= 0) or (Frequency = 0) then Exit;
+  StartTicks := GetTicks;
+  TargetTicks := StartTicks + (ANanoSeconds * Frequency) div 1000000000;
+  repeat
+    CurrentTicks := GetTicks;
+    // Handle counter overflow (very rare)
+    if (TargetTicks < StartTicks) and (CurrentTicks >= StartTicks) then
+       Continue;
+  until (CurrentTicks >= TargetTicks) or (CurrentTicks < StartTicks);
+end;
+
+{==============================================================================
+  Internal Task Record
 ==============================================================================}
 
 type
   PWorkerTask = ^TWorkerTask;
-
+  { Record passed to each worker thread containing all data needed to render
+    a specific strip, ensuring thread safety by using local copies. }
   TWorkerTask = record
     Owner: TSkiaCustomMultiThreadedBase;
     StripIndex: Integer;
@@ -139,16 +197,19 @@ begin
   FStopwatch := TStopwatch.Create;
   FRenderThreads := TList.Create;
 
+  FTimer.Init;
   FTargetFPS := 60;
   FWorkerCount := 4;
   FRealFPS := 0;
   FLastFpsTime := 0;
   FStripsCompleted := 0;
   FThreadAffinity := -1;
+  FBufferValid := False;
 
   SetBounds(0, 0, 300, 200);
   HitTest := True;
 
+  // Initialize demo state
   FDemoRect := TRectF.Create(50, 50, 100, 100);
   FDemoVelocity := TPointF.Create(150, 100);
   FAngle := 0.0;
@@ -169,17 +230,68 @@ end;
 procedure TSkiaCustomMultiThreadedBase.Resize;
 begin
   inherited;
+  // Invalidate buffers when size changes
   FNeedsRedraw := True;
+  FBufferValid := False;
   SetLength(FStripImages, 0);
   SetLength(FBackSurfaces, 0);
 end;
 
-{------------------------------------------------------------------------------}
+{------------------------------------------------------------------------------
+  AllocateBuffers
+  Creates the off-screen surfaces once. They are reused across frames to avoid
+  memory allocation overhead.
+------------------------------------------------------------------------------}
+procedure TSkiaCustomMultiThreadedBase.AllocateBuffers;
+var
+  TotalHeight, StripHeight, i: Integer;
+begin
+  // Skip allocation if buffers are already valid for current size
+  if FBufferValid then Exit;
+  if (Width <= 1) or (Height <= 1) or (FWorkerCount <= 0) then Exit;
+
+  FLock.Acquire;
+  try
+    if FBufferValid then Exit;
+
+    TotalHeight := Round(Height);
+    StripHeight := TotalHeight div FWorkerCount;
+    // Adjust last strip height if division isn't perfect
+    if (TotalHeight mod FWorkerCount) <> 0 then
+      StripHeight := StripHeight + 1;
+
+    SetLength(FBackSurfaces, FWorkerCount);
+    SetLength(FStripImages, FWorkerCount);
+
+    for i := 0 to FWorkerCount - 1 do
+    begin
+      var StripY := i * StripHeight;
+      var CurrentH := StripHeight;
+      // Ensure the last strip covers exactly to the bottom
+      if i = FWorkerCount - 1 then
+        CurrentH := TotalHeight - StripY;
+
+      if CurrentH > 0 then
+        // Create a raster surface for this strip
+        FBackSurfaces[i] := TSkSurface.MakeRaster(Round(Width), CurrentH)
+      else
+        FBackSurfaces[i] := nil;
+    end;
+    FBufferValid := True;
+  finally
+    FLock.Release;
+  end;
+end;
+
+{------------------------------------------------------------------------------
+  Property Setters
+------------------------------------------------------------------------------}
 
 procedure TSkiaCustomMultiThreadedBase.SetWorkerCount(const Value: Integer);
 begin
   if FWorkerCount <> Value then
   begin
+    // Restart threads to apply new worker count
     if FActive then
     begin
       Active := False;
@@ -187,7 +299,11 @@ begin
       Active := True;
     end
     else
+    begin
       FWorkerCount := Value;
+      FBufferValid := False;
+      SetLength(FBackSurfaces, 0);
+    end;
   end;
 end;
 
@@ -199,7 +315,7 @@ begin
     if FActive then
     begin
       Active := False;
-      Active := True;
+      Active := True; // Restart threads to apply affinity
     end;
   end;
 end;
@@ -225,6 +341,10 @@ begin
     FTargetFPS := Value;
 end;
 
+{------------------------------------------------------------------------------
+  ThreadSafeInvalidate
+  Triggers a repaint on the UI thread safely from a background thread.
+------------------------------------------------------------------------------}
 procedure TSkiaCustomMultiThreadedBase.ThreadSafeInvalidate;
 begin
   if csDestroying in ComponentState then
@@ -237,8 +357,10 @@ begin
     end);
 end;
 
-{------------------------------------------------------------------------------}
-
+{------------------------------------------------------------------------------
+  StartRenderThreads
+  Initializes the main render loop thread.
+------------------------------------------------------------------------------}
 procedure TSkiaCustomMultiThreadedBase.StartRenderThreads;
 begin
   if FRenderThreads.Count > 0 then
@@ -259,6 +381,7 @@ begin
       begin
         RenderFrame;
 
+        // FPS Control Logic
         EndTime := FStopwatch.Elapsed.TotalMilliseconds;
         ElapsedMs := EndTime - StartTime;
 
@@ -269,11 +392,14 @@ begin
 
         SleepTime := Round(FFrameTime - ElapsedMs);
         if SleepTime < 0 then
-          SleepTime := 0; // If we are slow, don't sleep
-        if SleepTime > 0 then
-          Sleep(SleepTime); // Only sleep if we are fast
+          SleepTime := 0; // Frame took too long, no sleep
 
+        if SleepTime > 0 then
+          Sleep(SleepTime);
+
+        // Adjust start time to maintain long-term FPS stability
         StartTime := StartTime + FFrameTime;
+        // Correct for massive drifts (e.g. debugger pause)
         if (FStopwatch.Elapsed.TotalMilliseconds - StartTime) > 1000 then
           StartTime := FStopwatch.Elapsed.TotalMilliseconds;
       end;
@@ -299,9 +425,10 @@ begin
 end;
 
 {------------------------------------------------------------------------------
-  CORE RENDERING
+  RenderFrame
+  Main rendering orchestration. Prepares tasks, spawns workers, waits for
+  completion, and composites the final result.
 ------------------------------------------------------------------------------}
-
 procedure TSkiaCustomMultiThreadedBase.RenderFrame;
 var
   MainSurface: ISkSurface;
@@ -316,11 +443,12 @@ begin
   if FTerminate then
     Exit;
 
-  // 1. Update Logic
+  // 1. Update Logic State
   if FTargetFPS > 0 then
     DeltaTimeSec := 1.0 / FTargetFPS
   else
     DeltaTimeSec := 0.016;
+
   if FActive then
     UpdateLogic(DeltaTimeSec);
 
@@ -331,23 +459,23 @@ begin
   if (Width <= 1) or (Height <= 1) then
     Exit;
 
-  // 2. Capture State
+  // 2. Capture current state for this frame (Snapshot)
   CurrentRect := FDemoRect;
   CurrentActive := FActive;
   CurrentAngle := FAngle;
 
-  // 3. Setup
+  // 3. Ensure Off-screen Buffers are allocated
+  AllocateBuffers;
+  if not FBufferValid then Exit;
+
+  // 4. Calculate Strip Dimensions
   TotalHeight := Round(Height);
   StripHeight := TotalHeight div FWorkerCount;
   if (TotalHeight mod FWorkerCount) <> 0 then
     StripHeight := StripHeight + 1;
 
   SetLength(RunningThreads, FWorkerCount);
-  if Length(FBackSurfaces) <> FWorkerCount then
-    SetLength(FBackSurfaces, FWorkerCount);
-  if Length(FStripImages) <> FWorkerCount then
-    SetLength(FStripImages, FWorkerCount);
-
+  // Create a target surface for compositing the strips
   MainSurface := TSkSurface.MakeRaster(Round(Width), TotalHeight);
   if not Assigned(MainSurface) then
     Exit;
@@ -356,7 +484,7 @@ begin
   FEvent.ResetEvent;
 
   // ==========================================
-  // PHASE 1: SPAWN & START (Staggered)
+  // PHASE 1: SPAWN WORKERS
   // ==========================================
   for i := 0 to FWorkerCount - 1 do
   begin
@@ -364,11 +492,13 @@ begin
     var CurrentH := StripHeight;
     var LIndex: Integer := i;
 
+    // Calculate height for the last strip to fill remainder
     if LIndex = FWorkerCount - 1 then
       CurrentH := TotalHeight - StripY;
 
     if CurrentH <= 0 then
     begin
+      // Strip has no height, mark as done immediately
       TMonitor.Enter(Self);
       try
         Inc(FStripsCompleted);
@@ -381,15 +511,14 @@ begin
       Continue;
     end;
 
-    // Create Surface
-    FBackSurfaces[LIndex] := TSkSurface.MakeRaster(Round(Width), CurrentH);
+    // Retrieve the persistent surface for this strip
     if not Assigned(FBackSurfaces[LIndex]) then
       Continue;
 
-    // Clear Background
+    // Clear the surface for reuse
     FBackSurfaces[LIndex].Canvas.Clear(TAlphaColors.Black);
 
-    // Prepare Task
+    // Prepare the task record
     WorkerTask.Owner := Self;
     WorkerTask.StripIndex := LIndex;
     WorkerTask.StripY := StripY;
@@ -400,7 +529,7 @@ begin
 
     var LSurface: ISkSurface := FBackSurfaces[LIndex];
 
-    // Start Thread
+    // Create and start the worker thread
     RunningThreads[LIndex] := TThread.CreateAnonymousThread(
       procedure
       var
@@ -412,6 +541,7 @@ begin
         LCpuId: Integer;
         Snapshot: ISkImage;
       begin
+        // Copy parameters to local stack for thread safety
         Task := WorkerTask;
         Surface := LSurface;
 
@@ -422,9 +552,9 @@ begin
           if not Assigned(Surface) then
             raise Exception.Create('Surface nil');
 
-          // Affinity
+          // --- Affinity Setup ---
           {$IFDEF MSWINDOWS}
-              if (Task.Owner.FThreadAffinity >= 0) then
+          if (Task.Owner.FThreadAffinity >= 0) then
             WinApi.Windows.SetThreadAffinityMask(GetCurrentThread, NativeUInt(1) shl Task.Owner.FThreadAffinity)
           else if (Task.Owner.FThreadAffinity) = -1 then
           begin
@@ -435,7 +565,7 @@ begin
           end;
           {$ENDIF}
 
-          // --- RENDER TO SURFACE ---
+          // --- Render to Surface ---
           LCanvas := Surface.Canvas;
           LCanvas.Save;
           try
@@ -444,12 +574,13 @@ begin
             LCanvas.Restore;
           end;
 
-          // --- CREATE SNAPSHOT ---
+          // --- Create Snapshot ---
+          // Capture the rendered strip as an immutable image
           Snapshot := Surface.MakeImageSnapshot;
           Task.Owner.FStripImages[Task.StripIndex] := Snapshot;
 
         finally
-          // Signal Done
+          // Signal completion
           if Assigned(Task.Owner) then
           begin
             TMonitor.Enter(Task.Owner);
@@ -467,22 +598,20 @@ begin
     RunningThreads[LIndex].FreeOnTerminate := False;
     RunningThreads[LIndex].Start;
 
-
     // ==========================================
-    // THE STAGGER (Micro-Delay else we flicker)
+    // STAGGER START TIMES
     // ==========================================
+    // Spreading thread starts prevents CPU bursts and ensures smoother
+    // operation on multi-core systems.
     if LIndex < FWorkerCount - 1 then
     begin
-      if LIndex = 0 then
-        sleep(1)
-      else    //try to sleep here less than sleep(1)
-        for var j := 0 to 300 do
-          SwitchToThread;
+      // Wait 0.15 milliseconds before starting the next thread
+      FTimer.SpinWaitNanoseconds(150000);
     end;
   end;
 
   // ==========================================
-  // PHASE 2: WAIT
+  // PHASE 2: WAIT FOR COMPLETION
   // ==========================================
   while FStripsCompleted < FWorkerCount do
   begin
@@ -491,6 +620,7 @@ begin
     FEvent.WaitFor(INFINITE);
   end;
 
+  // Cleanup thread objects
   for i := 0 to FWorkerCount - 1 do
   begin
     if Assigned(RunningThreads[i]) then
@@ -502,8 +632,9 @@ begin
   end;
 
   // ==========================================
-  // PHASE 3: COMPOSITE (From Snapshots)
+  // PHASE 3: COMPOSITE FRAME
   // ==========================================
+  // Combine all strip snapshots into the final back buffer
   if not FTerminate then
   begin
     for i := 0 to FWorkerCount - 1 do
@@ -515,6 +646,7 @@ begin
       end;
     end;
 
+    // Update the shared back buffer
     FLock.Acquire;
     try
       FBackBuffer := MainSurface.MakeImageSnapshot;
@@ -522,19 +654,21 @@ begin
       FLock.Release;
     end;
 
+    // Request UI repaint
     ThreadSafeInvalidate;
   end;
 end;
 
 {------------------------------------------------------------------------------
-  Main Thread Drawing
+  Draw
+  Main Thread Execution. Draws the final back buffer to the screen.
 ------------------------------------------------------------------------------}
-
 procedure TSkiaCustomMultiThreadedBase.Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
 var
   ImageToDraw: ISkImage;
   CurrentTime: Double;
 begin
+  // Retrieve the latest frame from the buffer
   FLock.Acquire;
   try
     ImageToDraw := FBackBuffer;
@@ -546,9 +680,9 @@ begin
   begin
     ACanvas.DrawImage(ImageToDraw, 0, 0, TSkSamplingOptions.High);
 
+    // Calculate Real FPS
     Inc(FFrameCount);
     CurrentTime := FStopwatch.Elapsed.TotalMilliseconds;
-
     if (CurrentTime - FLastFpsTime) >= 1000 then
     begin
       FRealFPS := Round(FFrameCount / ((CurrentTime - FLastFpsTime) / 1000.0));
@@ -566,8 +700,10 @@ end;
 
 procedure TSkiaCustomMultiThreadedBase.UpdateLogic(const DeltaTime: Double);
 begin
+  // Move Box
   FDemoRect.Offset(FDemoVelocity.X * DeltaTime, FDemoVelocity.Y * DeltaTime);
 
+  // Bounce X
   if FDemoRect.Left < 0 then
   begin
     FDemoVelocity.X := Abs(FDemoVelocity.X);
@@ -579,6 +715,7 @@ begin
     FDemoRect.Left := Width - FDemoRect.Width;
   end;
 
+  // Bounce Y
   if FDemoRect.Top < 0 then
   begin
     FDemoVelocity.Y := Abs(FDemoVelocity.Y);
@@ -590,8 +727,10 @@ begin
     FDemoRect.Top := Height - FDemoRect.Height;
   end;
 
+  // Rotate
   FAngle := FAngle + (3.0 * DeltaTime);
 
+  // Flag for redraw if state changed
   if (FDemoRect.Left <> FPrevRect.Left) or (FActive <> FPrevActive) then
   begin
     FNeedsRedraw := True;
@@ -606,8 +745,7 @@ var
   DrawRect: TRectF;
   StripYOffset: Single;
 begin
-  // 1. Draw Background (Already cleared to Black in Main Thread, but we ensure it)
-  // Optional: If you want transparency, don't clear here.
+  // 1. Clear Background
   Paint := TSkPaint.Create;
   Paint.Style := TSkPaintStyle.Fill;
   Paint.Color := TAlphaColors.Black;
@@ -618,10 +756,10 @@ begin
   begin
     StripYOffset := ATime;
 
-    // Calculate local rect for this strip
+    // Calculate the object's position relative to this strip
     DrawRect := TRectF.Create(AObjectRect.Left, AObjectRect.Top - StripYOffset, AObjectRect.Right, AObjectRect.Bottom - StripYOffset);
 
-    // Optimization: Don't draw if outside
+    // Optimization: Cull if outside strip bounds
     if (DrawRect.Bottom < 0) or (DrawRect.Top > ADest.Height) then
       Exit;
 
@@ -640,6 +778,3 @@ begin
 end;
 
 end.
-
-
-
