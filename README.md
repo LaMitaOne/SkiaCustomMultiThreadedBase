@@ -25,15 +25,15 @@ This unit is experimental. Just an idea i got while implementing doublebuffering
    
 we running stable now so far, no big memleak anymore, but a little...anyway...now i go sleep a few days better :P   
      
-  Latest Changes:
-   v 0.3:
-   - Replaced Sleep/SwitchToThread with HighResTimer SpinWait.
-   - Optimized stagger timing to 150ns for maximum throughput.
-   - Implemented Persistent Buffering (created once) to reduce GC pressure.
-   - Multi-threaded strip rendering with precise thread startup timing.
-   v 0.2:
-   - Initial multi-threaded strip architecture.
-   v 0.1:
-   - Implemented Doublebuffering logic.
-   - Implemented Background Thread Logic.
-   - Implemented Sequential Strip Rendering.
+  Latest Changes:    
+   v 0.3:    
+   - Replaced Sleep/SwitchToThread with HighResTimer SpinWait.    
+   - Optimized stagger timing to 150ns for maximum throughput.     
+   - Implemented Persistent Buffering (created once) to reduce GC pressure.     
+   - Multi-threaded strip rendering with precise thread startup timing.    
+   v 0.2:    
+   - Initial multi-threaded strip architecture.    
+   v 0.1:    
+   - Implemented Doublebuffering logic.     
+   - Implemented Background Thread Logic.    
+   - Implemented Sequential Strip Rendering.    
