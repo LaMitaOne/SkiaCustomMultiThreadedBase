@@ -5,7 +5,7 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Layouts,
-  FMX.StdCtrls, FMX.Controls.Presentation, FMX.ExtCtrls, FMX.ListBox, 
+  FMX.StdCtrls, FMX.Controls.Presentation, FMX.ExtCtrls, FMX.ListBox,
   uSkiaCustomMultiThreadedBase;
 
 type
@@ -20,7 +20,7 @@ type
     tbFPS: TTrackBar;
     lblFPS: TLabel;
     FPSTimer: TTimer;
-    cbWorkerCount: TComboBox; 
+    cbWorkerCount: TComboBox;
     procedure OnStartClick(Sender: TObject);
     procedure OnStopClick(Sender: TObject);
     procedure OnFPSTracking(Sender: TObject);
@@ -44,7 +44,7 @@ begin
   FSkiaView := TSkiaCustomMultiThreadedBase.Create(Self);
   FSkiaView.Parent := Self;
   FSkiaView.Align := TAlignLayout.Client;
-  FSkiaView.Margins.Rect := TRectF.Create(10, 110, 10, 10); 
+  FSkiaView.Margins.Rect := TRectF.Create(10, 110, 10, 10);
   FSkiaView.HitTest := False;
   FSkiaView.Active := False;
   FSkiaView.TargetFPS := 60;
@@ -98,16 +98,16 @@ begin
   cbWorkerCount.Width := 155;
   cbWorkerCount.Position.X := 80;
   cbWorkerCount.Position.Y := 60;
-  cbWorkerCount.ItemHeight := 25; 
+  cbWorkerCount.ItemHeight := 25;
   // Fill ComboBox with 1 to 16
   cbWorkerCount.Items.Add('each line a thread');
-  for i := 1 to 64 do
+  for i := 1 to 256 do
     cbWorkerCount.Items.Add(IntToStr(i));
-  cbWorkerCount.ItemIndex := 4; // Default to 4
+  cbWorkerCount.ItemIndex := 4;
   cbWorkerCount.OnChange := OnWorkerCountChange;
   // 8. Create FPS Update Timer
   FPSTimer := TTimer.Create(Self);
-  FPSTimer.Interval := 1000; // 1 Second for accurate reading
+  FPSTimer.Interval := 1000;
   FPSTimer.OnTimer := OnFPSTimer;
   FPSTimer.Enabled := True;
 end;
@@ -162,6 +162,4 @@ begin
 end;
 
 end.
-
-
 
