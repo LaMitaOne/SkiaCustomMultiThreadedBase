@@ -1,7 +1,8 @@
 # SkiaCustomMultiThreadedBase
 A High-Performance, Multi-Threaded Rendering Skeleton for FMX &amp; Skia4Delphi Experimental v0.2 alpha
     
-<img width="643" height="510" alt="Unbenannt" src="https://github.com/user-attachments/assets/943b8b7d-03d5-489b-8ce7-0b7fb3712d41" />
+<img width="637" height="507" alt="Unbenannt" src="https://github.com/user-attachments/assets/5043cfae-2f4e-4b59-a581-47c31c600e6a" />
+
          
 This is a minimal, abstracted rendering engine designed to solve the Main-Thread Bottleneck in FireMonkey (FMX) applications.     
 It moves all heavy rendering logic (drawing images, effects, particles) to a background thread pool, while the main UI thread simply displays the finished image.    
