@@ -21,7 +21,7 @@ It moves all heavy rendering logic (drawing images, effects, particles) to a bac
      
 This unit is experimental. Just an idea i got while implementing doublebuffering and thought of how miniled split screen in regions...    
     
-***Multithreaded rendering at all works and looks ok now, no flicker at all, real and target fps get same***     
+***Multithreaded rendering at all works and looks ok now, no flicker at all, real and target fps get same at 120, 144 not anymore here***     
    
 we running stable now so far, no big memleak anymore, but a little...anyway...now i go sleep a few days better :P   
      
