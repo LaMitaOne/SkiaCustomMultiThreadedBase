@@ -22,7 +22,7 @@ It moves all heavy rendering logic (drawing images, effects, particles) to a bac
      
 This unit is experimental. Just an idea i got while implementing doublebuffering and thought of how miniled split screen in regions...    
     
-***Multithreaded rendering at all works and looks ok now, no flicker at all, real and target fps get same at 120Hz, 144Hz not anymore here, 256 threads only get 20fps here at ryzen 7 5800x***     
+***Multithreaded rendering works and looks ok now, no flicker, real and target fps get same at 120Hz, 144Hz not anymore here, 256 threads only get 20fps here at ryzen 7 5800x***     
    
 we running stable now so far, no big memleak anymore, but a little...anyway...now i go sleep a few days better :P   
    
