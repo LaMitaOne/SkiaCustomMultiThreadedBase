@@ -17,15 +17,22 @@ It moves all heavy rendering logic (drawing images, effects, particles) to a bac
      
  
 ⚠️ Experimental Status    
+     
+This unit is experimental. Just an idea i got while implementing doublebuffering and thought of how miniled split screen in regions...    
     
-This unit is experimental. Just an idea i got while implementing doublebuffering and thought of how miniled split screen in regions... 
-
-***Multithreaded rendering at all works and looks ok now, no flicker at all (except when we do more than 4 threads, then some artifacts but still running even at 64t-144fps), cause we wait a short moment (less than sleep(1)) after create each workerthread but we get memleak and fill up and die after a while...somebody see it maybe or has an idea?***     think better not create each cycle... Yea think I get some idea 🤦🏻‍♀️
-    
-On Asus zenbook ux305ca dual core no artifacts(rarely saw some later) even at 64 threads, but getting a bit slow 17fps, still nice to test. Runs stable few minutes till mem full at 64 threads. Ok same time hd video & Firefox open is lil bit much too :D But Artifacts think maybe a timing problem at faster pc, at our gate       
-    
-Probably I don't see the Forrest cause of all the trees or something...   
-But at all not bad try so far... we throw around **9.216 Threads/sec** at **144 fps** with **64 threads** – relatively stable :D Delphi ROCKS  
-(The only thing stopping us is the memleak... not the madness itself.)  
-    
-i get now a bit to my limits here, someone with more than 1 month experience in skia4delphi maybe better should look at it
+***Multithreaded rendering at all works and looks ok now, no flicker at all, real and target fps get same***     
+   
+we running stable now so far, no big memleak anymore, but a little...anyway...now i go sleep a few days better :P   
+     
+  Latest Changes:
+   v 0.3:
+   - Replaced Sleep/SwitchToThread with HighResTimer SpinWait.
+   - Optimized stagger timing to 150ns for maximum throughput.
+   - Implemented Persistent Buffering (created once) to reduce GC pressure.
+   - Multi-threaded strip rendering with precise thread startup timing.
+   v 0.2:
+   - Initial multi-threaded strip architecture.
+   v 0.1:
+   - Implemented Doublebuffering logic.
+   - Implemented Background Thread Logic.
+   - Implemented Sequential Strip Rendering.
