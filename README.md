@@ -26,7 +26,7 @@ This unit is experimental. Just an idea i got while implementing doublebuffering
    
 we running stable now so far, no big memleak anymore, but a little...anyway...now i go sleep a few days better :P   
    
-oh and yes ...i tried it really...256 threads on Asus zenbook dualcore lol he survived and done 13fps still oO impressive compared to the ryzen...  
+oh and yes ...i tried it really...256 threads on Asus zenbook ux305ca dual-core Intel m3 lol he survived luckily and done 13fps still oO impressive compared to the ryzen...  
      
   Latest Changes:    
    v 0.3:    
